@@ -1,0 +1,158 @@
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>TwitchTV SDK Example App + Practice</title>
+  <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+
+  <script src="https://ttv-api.s3.amazonaws.com/twitch.min.js"></script>
+
+  <script>
+    base = 'https://api.twitch.tv/kraken/'; //base url
+    window.CLIENT_ID = '48fzzr0caz9e7smxeo376us0u3fgiwy';
+    $(function() {
+      // Initialize. If we are already logged in, there is no
+      // need for the connect button
+      Twitch.init({clientId: CLIENT_ID}, function(error, status) {
+        if (status.authenticated) {
+          // we're logged in :)
+          $('.status input').val('Logged in! Allowed scope: ' + status.scope);
+          // Show the data for logged-in users
+          $('.authenticated').removeClass('hidden');
+        } else {
+          $('.status input').val('Not Logged in! Better connect with Twitch!');
+          // Show the twitch connect button
+          $('.authenticate').removeClass('hidden');
+        }
+      });
+
+
+      $('.twitch-connect').click(function() {
+        Twitch.login({
+          redirect_uri: 'http://localhost/example.html',
+          //popup: false,
+          scope: ['user_read', 'channel_read', 'user_follows_edit', 'user_subscriptions' ]
+        });
+      })
+
+      $('#logout button').click(function() {
+        Twitch.logout();
+
+        // Reload page and reset url hash. You shouldn't
+        // need to do this.
+        window.location = window.location.pathname
+      })
+
+      $('#get-name button').click(function() {
+        Twitch.api({method: 'user'}, function(error, user) {
+          $('#get-name input').val(user.display_name);
+        });
+      })
+
+      $('#get-stream-key button').click(function() {
+        Twitch.api({method: 'channel'}, function(error, channel) {
+          $('#get-stream-key input').val(channel.stream_key);
+        });
+      })
+
+      $('#text button').click(function() {
+        token = Twitch.getToken; //gets the oauth token generated in document.location.hash
+        $('#text input').val(token);
+      })
+
+      $('#follows button').click(function() {
+        Twitch.api({method: 'user'}, function(error, user) {
+          $.getJSON('https://api.twitch.tv/kraken/channels/' + user.display_name + '/follows', function(data) {
+            console.log(data);
+            console.log(user);
+
+            for (var i = 0; i < data.follows.length; i++) {
+              console.log(data.follows[i].user.display_name);
+              $('#follows input').val("Follows displayed below: "); //displays information
+              $('#p1').append("<br>" + data.follows[i].user.display_name);
+            }
+          });
+        });
+      })
+
+      $('#following button').click(function() {
+        Twitch.api({method: 'user'}, function(error, user) {
+          $.getJSON('https://api.twitch.tv/kraken/users/' + user.display_name + '/follows/channels?limit=100', function(data) {
+            console.log(data);
+            for(var i = 0; i < data.follows.length; i++) {
+              console.log(data.follows[i].channel.display_name);
+              $('#p2').append("<br>" + data.follows[i].channel.display_name);
+            }
+          });
+        });
+      })
+
+      $('#games button').click(function() { //grabs top games by viewers
+        $.getJSON(base + '/games/top', function(data) {
+          console.log(data);
+          for(var i = 0; i < 8; i++) {
+            $('#picture').append('<img src="' + data.top[i].game.box.medium + '"></img>  '); //adds images of top 8 games 
+          }
+        });
+      })
+
+    });
+
+  </script>
+
+  <style type="text/css">
+  .hidden {
+    display: none;
+  }
+  </style>
+</head>
+<body>
+  <h1>TwitchTV SDK Example App</h1>
+    <div class="status">
+      Status: <input readonly="readonly" size="60" val="Unknown"/>
+    </div>
+    <div class="authenticate hidden">
+      <img src="http://ttv-api.s3.amazonaws.com/assets/connect_dark.png" class="twitch-connect" href="#" />
+    </div>
+
+    <h2 class="authenticated hidden">Authenticated</h2>
+    <div class="authenticated hidden">
+      <div id="logout">
+        <button>Log Out</button>
+      </div>
+
+      <div id="get-name">
+        <button>Get TwitchTV Name</button>
+        <input readonly="readonly" size="50" value="Unknown"/>
+      </div>
+
+      <div id="get-stream-key">
+        <button>Get TwitchTV Stream Key</button>
+        <input readonly="readonly" size="50" value="Unknown"/>
+      </div>
+
+      <div id="text">
+        <button>Get generated token</button>
+        <input readonly="readonly" size="50" value="Token here">
+      </div>
+
+      <div id="follows">
+        <button>Get Followers</button>
+        <input readonly="readonly" size="50" value="followers">
+        <p id='p1'>Followers: </p>
+      </div>
+
+      <div id="following">
+        <button>Get Followed Channels</button>
+        <input readonly="readonly" size="50" value="Followed Channels">
+        <p id='p2'>Following: </p>
+      </div>
+
+      <div id="games">
+        <button>Get Top Games</button>
+        <p id='p3'></p>
+        <div id="picture"></div>
+      </div>
+
+    </div>
+</body>
+</html>
